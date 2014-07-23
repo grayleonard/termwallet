@@ -15,9 +15,9 @@ import java.math.BigInteger;
 import java.util.*;
 
 /**
- * This class implements a {@link com.google.bitcoin.wallet.CoinSelector} which attempts to get the highest priority
- * possible. This means that the transaction is the most likely to get confirmed. Note that this means we may end up
- * "spending" more priority than would be required to get the transaction we are creating confirmed.
+ * This class implements a {@link com.google.bitcoin.wallet.CoinSelector} which attempts to select all outputs
+ * from a designated address. Outputs are selected in order of highest priority.  Note that this means we may 
+ * end up "spending" more priority than would be required to get the transaction we are creating confirmed.
  */
 public class IndividualCoinSelector implements CoinSelector {
 
@@ -40,17 +40,17 @@ public class IndividualCoinSelector implements CoinSelector {
         }
         // Now iterate over the sorted outputs until we have got as close to the target as possible or a little
         // bit over (excessive value will be change).
-        long total = 0;
+        long totalOutputValue = 0;
         for (TransactionOutput output : sortedOutputs) {
-            if (total >= target) break;
+            if (totalOutputValue >= target) break;
             // Only pick chain-included transactions, or transactions that are ours and pending.
             if (!shouldSelect(output)) continue;
             selected.add(output);
-            total += output.getValue().longValue();
+            totalOutputValue += output.getValue().longValue();
         }
         // Total may be lower than target here, if the given candidates were insufficient to create to requested
         // transaction.
-        return new CoinSelection(BigInteger.valueOf(total), selected);
+        return new CoinSelection(BigInteger.valueOf(totalOutputValue), selected);
     }
 
     static void sortOutputs(ArrayList<TransactionOutput> outputs) {
@@ -83,13 +83,15 @@ public class IndividualCoinSelector implements CoinSelector {
 
     /** Sub-classes can override this to just customize whether transactions are usable, but keep age sorting. */
     protected boolean shouldSelect(TransactionOutput output) {
+	Address outputToAddress = output.getScriptPubKey().getToAddress(Constants.params);
     	try {
-		if(output.getScriptPubKey().getToAddress(Constants.params).equals(addressToQuery)) {
+		// Check if output address matches addressToQuery and check if it can be spent.
+		if(outputToAddress.equals(addressToQuery)) {
 			if(output.isAvailableForSpending()) {
 				return isSelectable(output.getParentTransaction());
 			}
 		}
-	} catch (Exception e ) {
+	} catch (Exception e) {
 		e.printStackTrace();
 	}
 	return false;

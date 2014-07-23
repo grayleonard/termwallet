@@ -15,9 +15,9 @@ import java.math.BigInteger;
 import java.util.*;
 
 /**
- * This class implements a {@link com.google.bitcoin.wallet.CoinSelector} which attempts to get the highest priority
- * possible. This means that the transaction is the most likely to get confirmed. Note that this means we may end up
- * "spending" more priority than would be required to get the transaction we are creating confirmed.
+ * This class implements a {@link com.google.bitcoin.wallet.CoinSelector} which attempts to select all outputs
+ * from a list of address. Outputs are selected in order of highest priority.  Note that this means we may 
+ * end up "spending" more priority than would be required to get the transaction we are creating confirmed.
  */
 public class MultipleCoinSelector implements CoinSelector {
 
@@ -44,7 +44,7 @@ public class MultipleCoinSelector implements CoinSelector {
         for (TransactionOutput output : sortedOutputs) {
             if (total >= target) break;
             // Only pick chain-included transactions, or transactions that are ours and pending.
-            if (!shouldSelect(output.getParentTransaction())) continue;
+            if (!shouldSelect(output)) continue;
             selected.add(output);
             total += output.getValue().longValue();
         }
@@ -82,17 +82,15 @@ public class MultipleCoinSelector implements CoinSelector {
     }
 
     /** Sub-classes can override this to just customize whether transactions are usable, but keep age sorting. */
-    protected boolean shouldSelect(Transaction tx) {
+    protected boolean shouldSelect(TransactionOutput output) {
     	try {
-	    	for(TransactionOutput output : tx.getOutputs()) {
                 for(int i = 0; i < addressesToQuery.size(); i++) { // Parse through each address to check
-	        		if(output.getScriptPubKey().getToAddress(Constants.params).equals(addressesToQuery.get(i))) {
-	        			if(output.isAvailableForSpending()) {
-							return isSelectable(tx);
-	        			}
-	        		}
-	        	}
-            }
+			if(output.getScriptPubKey().getToAddress(Constants.params).equals(addressesToQuery.get(i))) {
+				if(output.isAvailableForSpending()) {
+					return isSelectable(output.getParentTransaction());
+				}
+			}
+		}
         } catch (Exception e ) {
         	e.printStackTrace();
         }

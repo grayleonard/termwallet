@@ -56,6 +56,7 @@ public class App {
 
 		// Start up a basic app using a class that automates some boilerplate.
 		kit = new WalletAppKit(Constants.params, new File(System.getProperty("user.home")), filePrefix);
+		//kit.useTor(); //For the future...
 		// Download the blockchain and wait until it's done.
 		kit.startAndWait();
 
