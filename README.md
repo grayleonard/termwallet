@@ -37,6 +37,8 @@ send [to] [satoshis], send a new transaction. Chooses from all outputs in your w
 
 send [to] [from] [satoshis], send a new transaction. Designating the 'from' address limits output selection to only that address
 
+listen, Listen passively for new transactions
+
 encrypt, You will be prompted for a password (make sure it is long and secure) to encrypt the private keys in your wallet with
 
 decrypt, You will be prompted for your encryption password.  You must decrypt before sending a transaction (and ideally encrypt after you send the transaction)

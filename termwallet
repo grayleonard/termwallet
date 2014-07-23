@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cd /usr/local/bin/
+sh target/appassembler/bin/termwallet "$@"
