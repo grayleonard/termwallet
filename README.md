@@ -15,6 +15,8 @@ You Need:
 Maven
 Java 1.6 (bitcoinj requirement)
 
+To change from testnet to mainnet, open Constants.java and change `params` to `MainNetParams.get()`.
+
 Compile with `mvn package appassembler:assemble`.
 
 To install, move 'termwallet' and the 'target' folder to /usr/local/bin (or your folder of preference).

@@ -152,7 +152,7 @@ public class App {
 		System.out.println("add [privkey], Adds designated private key to your wallet\r\n");
 		System.out.println("send [to] [satoshis], send a new transaction. Chooses from all outputs in your wallet\r\n");
 		System.out.println("send [to] [from] [satoshis], send a new transaction. Designating the 'from' address limits output selection to only that address\r\n");
-		System.out.println("listen, Listen passively for new transactions");
+		System.out.println("listen, Listen passively for new transactions\r\n");
 		System.out.println("encrypt, You will be prompted for a password (make sure it is long and secure) to encrypt the private keys in your wallet with\r\n");
 		System.out.println("decrypt, You will be prompted for your encryption password.  You must decrypt before sending a transaction (and ideally encrypt after you send the transaction)\r\n");
 		System.out.println("export, Export all keys associated with your wallet.  You must decrypt your wallet first if you want your private keys");
