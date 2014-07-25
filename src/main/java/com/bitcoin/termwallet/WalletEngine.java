@@ -54,17 +54,16 @@ public class WalletEngine extends AbstractWalletEventListener {
 	public void createSendRequest(String destination, BigInteger amount, Address address) {
 		try {
 			System.out.println("Sending " + Utils.bitcoinValueToFriendlyString(amount) + " BTC with TX FEE: " + Utils.bitcoinValueToFriendlyString(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE));
-			// Account for the TX Fee
-			// TODO: (already started) don't subract tx fee from total, add it on instead!!!
 			final BigInteger amountToSend = amount;
 			BigInteger amountAvailable;
+			// Checks if param. address has been specified
 			if(address == null) {
 				amountAvailable = App.getKit().wallet().getBalance();
 			} else {
 				amountAvailable = App.getKit().wallet().getBalance(new IndividualCoinSelector(address));
 				App.getKit().wallet().setCoinSelector(new IndividualCoinSelector(address));
 			}
-
+			// Check balance prior to sending request (sendResult will also throw error if balance < amount)
 			if(amountAvailable.compareTo(amountToSend.add(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE)) == -1) {
 				System.out.println("You don't have enough funds! You need " + amountToSend.add(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE).subtract(amountAvailable) + " satoshis more!");
 				return;
