@@ -39,8 +39,6 @@ public class WalletEngine extends AbstractWalletEventListener {
 			}
 		});
 	}
-	public void initiateEngine() { // Load associated addresses and start TransactionFutureProcessor.
-	}
 
 	@Override
 	public void onKeysAdded(Wallet wallet, List<ECKey> keys) {
