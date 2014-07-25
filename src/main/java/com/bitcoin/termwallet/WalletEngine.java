@@ -71,7 +71,10 @@ public class WalletEngine extends AbstractWalletEventListener {
 			System.out.println("balance: " + amountAvailable);
 			// Creates the send request and designates the change address (where change will be sent).
 			Wallet.SendRequest sendRequest = Wallet.SendRequest.to(new Address(Constants.params, destination), amountToSend);
-			sendRequest.changeAddress = App.getKit().wallet().getKeys().get(0).toAddress(Constants.params);
+			if(address == null)
+				sendRequest.changeAddress = App.getKit().wallet().getKeys().get(0).toAddress(Constants.params); //Temporary
+			else
+				sendRequest.changeAddress = address;
 			final Wallet.SendResult sendResult = App.getKit().wallet().sendCoins(App.getKit().peerGroup(), sendRequest);
 			checkNotNull(sendResult);  // We should never try to send more coins than we have!
 			System.out.println("Sending...");
