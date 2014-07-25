@@ -83,7 +83,7 @@ public class IndividualCoinSelector implements CoinSelector {
 
     /** Sub-classes can override this to just customize whether transactions are usable, but keep age sorting. */
     protected boolean shouldSelect(TransactionOutput output) {
-	Address outputToAddress = output.getScriptPubKey().getToAddress(Constants.params);
+	Address outputToAddress = output.getScriptPubKey().getToAddress(addressToQuery.getParameters());
     	try {
 		// Check if output address matches addressToQuery and check if it can be spent.
 		if(outputToAddress.equals(addressToQuery)) {
