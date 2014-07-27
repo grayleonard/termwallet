@@ -55,6 +55,7 @@ public class WalletEngine extends AbstractWalletEventListener {
 		try {
 			System.out.println("Sending " + Utils.bitcoinValueToFriendlyString(amount) + " BTC with TX FEE: " + Utils.bitcoinValueToFriendlyString(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE));
 			final BigInteger amountToSend = amount;
+			final BigInteger amountToSendPlusFee = amountToSend.add(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE);
 			BigInteger amountAvailable;
 			// Checks if param. address has been specified
 			if(address == null) {
@@ -64,17 +65,18 @@ public class WalletEngine extends AbstractWalletEventListener {
 				App.getKit().wallet().setCoinSelector(new IndividualCoinSelector(address));
 			}
 			// Check balance prior to sending request (sendResult will also throw error if balance < amount)
-			if(amountAvailable.compareTo(amountToSend.add(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE)) == -1) {
-				System.out.println("You don't have enough funds! You need " + amountToSend.add(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE).subtract(amountAvailable) + " satoshis more!");
+			if(amountAvailable.compareTo(amountToSendPlusFee) == -1) {
+				System.out.println("You don't have enough funds! You need " + amountToSendPlusFee.subtract(amountAvailable) + " satoshis more!");
 				return;
 			}
-			System.out.println("balance: " + amountAvailable);
+			System.out.println("balance: " + amountAvailable + " sending: " + amountToSend);
 			// Creates the send request and designates the change address (where change will be sent).
 			Wallet.SendRequest sendRequest = Wallet.SendRequest.to(new Address(Constants.params, destination), amountToSend);
 			if(address == null)
 				sendRequest.changeAddress = App.getKit().wallet().getKeys().get(0).toAddress(Constants.params); //Temporary
 			else
 				sendRequest.changeAddress = address;
+			sendRequest.fee = Transaction.REFERENCE_DEFAULT_MIN_TX_FEE;
 			final Wallet.SendResult sendResult = App.getKit().wallet().sendCoins(App.getKit().peerGroup(), sendRequest);
 			checkNotNull(sendResult);  // We should never try to send more coins than we have!
 			System.out.println("Sending...");

@@ -13,12 +13,15 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 
-import org.slf4j.helpers.NOPLogger;
+import jline.console.ConsoleReader;
+import jline.console.completer.*;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.LinkedList;
 import java.io.File;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.lang.StringBuilder;
@@ -31,45 +34,77 @@ public class App {
 	private static Address forwardingAddress;
 	private static WalletAppKit kit;
 	private static WalletEngine walletEngine;
-	public static void main(String[] args) throws Exception {
-		if(args.length == 0)
-			printHelp();
-		if(args[0].equals("help")) 
-			printHelp();	
+	static PrintStream original = System.out;
 
+	public static void main(String[] args) throws Exception {
+
+		String filePrefix;
+
+		if (Constants.params.equals(TestNet3Params.get())) 
+			filePrefix = "termwallet-testnet";
+		else filePrefix = "termwallet";
+		
+		PrintStream nullStream = new PrintStream(new OutputStream() {
+			public void write(int b) {} 
+		});
+		
+		
+		System.out.println("Loading all the blockchain data...");
+		System.setOut(nullStream); //RIP beautiful programming
+		System.setErr(nullStream);
+
+		kit = new WalletAppKit(Constants.params, new File(System.getProperty("user.home")), filePrefix);
+
+		//kit.useTor(); // For das future...
+
+		//Start WalletAppKit and have it listen
+		kit.startAndWait(); 
+
+		//Closes kit on System.exit()
+		kit.setAutoStop(true);
+		
+		// Init walletEngine
+		walletEngine = new WalletEngine(); 
+
+		// Forwards all events to the wallet engine to handle them.
+		kit.wallet().addEventListener(walletEngine);
+
+		System.setOut(original); // Seems to work, yikes. Hides bitcoinj logging
+		ConsoleReader reader = new ConsoleReader();
+		System.setOut(nullStream);
+
+		reader.setExpandEvents(false); //Normalizes '!'
+		reader.setPrompt("command> ");
+		
+		List<Completer> completers = new LinkedList<Completer>();
+		ArgumentCompleter sendCompleter = new ArgumentCompleter(new StringsCompleter("send"), new StringsCompleter(getAddresses()), new StringsCompleter("123123123123123lkajflskdjf"));
+		ArgumentCompleter getbalanceCompleter = new ArgumentCompleter(new StringsCompleter("balance"), new StringsCompleter(getAddresses()));
+		completers.add(sendCompleter);
+		completers.add(getbalanceCompleter);
+		
+		for(Completer c : completers) {
+			reader.addCompleter(c);
+		} //Temp stuff
+		if((args == null) || (args.length == 0))
+			printHelp();
+		if(args[0].equals("help"))
+			printHelp();
+		String line;
+		PrintWriter out = new PrintWriter(reader.getOutput());
+		while((line = reader.readLine()) != null) {
+			out.println(line);
+			handleInput(line, reader);
+		}
 		// Figure out which network we should connect to. Each one gets its own set of files.
 		try {
 			System.out.println("\r\nConnecting to and downloading blockchain...");
-			PrintStream nullStream = new PrintStream(new OutputStream() {
-				public void write(int b) {} 
-				});
-			PrintStream original = System.out;
-			System.setOut(nullStream); //RIP beautiful programming
-			System.setErr(nullStream);
-			String filePrefix;
-			if (Constants.params.equals(TestNet3Params.get())) {
-				System.out.println("connecting to TestNet");
-				filePrefix = "termwallet-testnet";
-			} else {
-				filePrefix = "termwallet";
-			}
 
-			// Start up a basic app using a class that automates some boilerplate.
-			kit = new WalletAppKit(Constants.params, new File(System.getProperty("user.home")), filePrefix);
-			//kit.useTor(); //For the future...
-			// Download the blockchain and wait until it's done.
-			kit.startAndWait();
-
-			// Initiate the WalletEngine class
-			walletEngine = new WalletEngine();
-			// Forwards all events to the wallet engine to handle them.
-			kit.wallet().addEventListener(walletEngine);
 			// Start it all up, baby!
 			System.setOut(original); //Allow console output again
 			System.out.println("\r\nFinished downloading blockchain, starting process...\r\n");
 			//TODO: Handle this using something better than if cases	
 			if(args[0].equals("status")) {
-				System.out.println("Your addresses and their balances:");
+				reader.println("Your addresses and their balances:");
 				List<ECKey> walletPubkeys = kit.wallet().getKeys();
 				Iterator<ECKey> iterator = walletPubkeys.iterator();
 				while(iterator.hasNext()) {
@@ -78,8 +113,8 @@ public class App {
 					String format = "%-40s%s%n";
 					System.out.printf(format, tempAddr, "Balance: " + addrBalance);
 				}
-				System.out.println("\r\nConfirmed: " + Utils.bitcoinValueToFriendlyString(kit.wallet().getBalance()) + "BTC");
-				System.out.println("Unconfirmed: " + Utils.bitcoinValueToFriendlyString(kit.wallet().getBalance(Wallet.BalanceType.ESTIMATED).subtract(kit.wallet().getBalance())) + "BTC");
+				System.out.println("\r\nConfirmed: " + kit.wallet().getBalance() + " satoshis");
+				System.out.println("Unconfirmed: " + kit.wallet().getBalance(Wallet.BalanceType.ESTIMATED).subtract(kit.wallet().getBalance()) + " satoshis");
 			}
 
 			if(args[0].equals("newaddress")) {
@@ -87,7 +122,6 @@ public class App {
 			}
 
 			if(args[0].equals("send")) {
-				System.setOut(original);
 				System.out.println(args[2]);
 				if(args.length == 3) {
 					getEngine().createSendRequest(args[1], new BigInteger(args[2]), null);
@@ -127,7 +161,7 @@ public class App {
 			if(args[0].equals("add")) {
 				System.out.println("Creating ECKey from privkey " + args[1] + "...");
 				ECKey toAdd = new ECKey(args[1].getBytes(), null);
-				toAdd.setCreationTimeSeconds(140606150L);
+				toAdd.setCreationTimeSeconds(140600000L);
 				getKit().wallet().addKey(toAdd);
 				System.out.println("Added new ECKey, address " + toAdd.toAddress(Constants.params) + " to wallet...");
 			}
@@ -153,6 +187,27 @@ public class App {
 	public static WalletEngine getEngine() {
 		return walletEngine;
 	}
+	static void handleInput(String input, ConsoleReader reader) throws Exception {
+		//System.setOut(original); // Seems to work, yikes. Hides bitcoinj logging
+		String[] inputDelimited = input.split("\\s+");
+		System.out.println(inputDelimited);
+		if(inputDelimited.length > 0) {
+			if(inputDelimited[0].equals("set")) {
+				
+			}
+			for(String arg : inputDelimited)
+				reader.println(arg);
+		}
+	}
+
+	static List<String> getAddresses() {
+		List<String> addressStrings = new LinkedList<String>();
+		for(ECKey address : getKit().wallet().getKeys()) {
+			addressStrings.add(address.toAddress(Constants.params).toString());
+		}
+		return addressStrings;
+	}
+
 	static void printHelp() {
 		System.out.println("\r\nCommands:\r\n\r\nhelp, Prints this\r\n");
 		System.out.println("status, Prints overview of your wallet. Includes your addresses and their balances\r\n");
