@@ -3,7 +3,7 @@ TermWallet
 
 **Still in development, and although it works it is in rough shape, so don't trust with your bitcoins!**
 
-An easy-to-use, bitcoinj-based wallet accessible through the command line.  Because it uses bitcoinj it doesn't need to download the blockchain.  Small servers with limited hard-drive space are thus the ideal use-case for TermWallet - you can run it with only terminal access.
+An easy-to-use, bitcoinj-based wallet accessible through the command line.  Because it uses bitcoinj it doesn't need to download the blockchain.  Small servers with limited hard-drive space are thus the ideal use-case for TermWallet.  You can run it with only terminal access.
 
 TermWallet includes a novel adaption of bitcoinj's CoinSelector method, IndividualCoinSelector.  Previously, bitcoinj (and subsequently bitcoinj-based wallets such as Multibit) have not been able to create transactions from a single address's outputs.  IndividualCoinSelector provides this capability. Test it out with the `send [to] [from] [amount]` command, where `[from]` is an address in your wallet.
 
