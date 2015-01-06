@@ -64,15 +64,15 @@ public class App {
 		CommandNew commandNew = new CommandNew();
 
 		jc.addCommand("status", status);
+		jc.addCommand("new", commandNew);
+		jc.addCommand("import", commandImport);
 		jc.addCommand("send", send);
 		jc.addCommand("encrypt", encrypt);
 		jc.addCommand("decrypt", decrypt);
 		jc.addCommand("export", export);
 		jc.addCommand("maintenance", maintenance);
-		jc.addCommand("import", commandImport);
 		jc.addCommand("delete", delete);
 		jc.addCommand("panic", panic);
-		jc.addCommand("new", commandNew);
 
 		jc.parse(args);
 

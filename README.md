@@ -36,10 +36,13 @@ Usage
 Usage: <main class> [options] [command] [command options]
   Options:
     -h, --help
-       
+
        Default: false
     -l, --listen
        Passively listen for transactions
+       Default: false
+        --testnet
+       Use testnet network
        Default: false
     -t, --tor
        Use Tor to connect to bitcoin network
@@ -50,6 +53,16 @@ Usage: <main class> [options] [command] [command options]
   Commands:
     status      Prints wallet addresses and balances
       Usage: status [options]
+
+    new      Create a new address with purpose 'change' or 'receive', defaults to 'receive'
+      Usage: new [options]
+        Options:
+          -p, --purpose
+             Address purpose
+             Default: RECEIVE_FUNDS
+
+    import      Add a private key to your wallet
+      Usage: import [options]
 
     send        Add file contents to the index
       Usage: send [options]
@@ -72,11 +85,8 @@ Usage: <main class> [options] [command] [command options]
     export      Export your wallet
       Usage: export [options]
 
-    maintenance      Export your wallet
+    maintenance      (WIP) Clean up transactions in wallet
       Usage: maintenance [options]
-
-    import      Add a private key to your wallet
-      Usage: import [options]
 
     delete      Remove a key from your watched addresses - destroy imported private keys
       Usage: delete [options]
@@ -92,11 +102,4 @@ Usage: <main class> [options] [command] [command options]
              Default: false
           -t, --to
              Address to send to
-
-    new      Create a new address with purpose 'change' or 'receive', defaults to 'receive'
-      Usage: new [options]
-        Options:
-          -p, --purpose
-             Address purpose
-             Default: RECEIVE_FUNDS
 ```
