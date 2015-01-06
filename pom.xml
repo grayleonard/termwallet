@@ -4,7 +4,7 @@
   <groupId>com.bitcoin.termwallet</groupId>
   <artifactId>termwallet</artifactId>
   <packaging>jar</packaging>
-  <version>0.2</version>
+  <version>0.5</version>
   <name>termwallet</name>
   <url>http://maven.apache.org</url>
   <dependencies>
@@ -21,10 +21,15 @@
   </dependency>
 <!-- Depend on bitcoinj -->
   <dependency>
-    <groupId>com.google</groupId>
-    <artifactId>bitcoinj</artifactId>
-    <version>0.11.3</version>
+    <groupId>org.bitcoinj</groupId>
+    <artifactId>bitcoinj-core</artifactId>
+    <version>LATEST</version>
     <scope>compile</scope>
+  </dependency>
+  <dependency>
+    <groupId>com.beust</groupId>
+    <artifactId>jcommander</artifactId>
+    <version>1.30</version>
   </dependency>
   </dependencies>
 <build>

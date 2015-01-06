@@ -1,14 +1,18 @@
 package com.bitcoin.termwallet;
 
-import com.google.bitcoin.core.*;
-import com.google.bitcoin.wallet.CoinSelector;
-import com.google.bitcoin.crypto.KeyCrypter;
-import com.google.bitcoin.crypto.KeyCrypterException;
-import com.google.bitcoin.kits.WalletAppKit;
-import com.google.bitcoin.params.MainNetParams;
-import com.google.bitcoin.params.RegTestParams;
-import com.google.bitcoin.params.TestNet3Params;
-import com.google.bitcoin.utils.BriefLogFormatter;
+import org.bitcoinj.core.*;
+import org.bitcoinj.wallet.CoinSelector;
+import org.bitcoinj.wallet.*;
+import org.bitcoinj.wallet.KeyChain.KeyPurpose;
+import org.bitcoinj.crypto.DeterministicKey;
+import org.bitcoinj.crypto.KeyCrypter;
+import org.bitcoinj.crypto.KeyCrypterException;
+import org.bitcoinj.kits.WalletAppKit;
+import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.RegTestParams;
+import org.bitcoinj.params.TestNet3Params;
+import org.bitcoinj.utils.BriefLogFormatter;
+import org.bitcoinj.utils.BtcFormat;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -25,124 +29,186 @@ import java.lang.StringBuilder;
 import java.util.logging.*;
 import java.text.MessageFormat;
 
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.JCommander;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class App {
 	private static Address forwardingAddress;
 	private static WalletAppKit kit;
 	private static WalletEngine walletEngine;
+
+	private static JCommander jc;
+
+	private static PrintStream nullStream = new PrintStream(new OutputStream() {
+				public void write(int b) {} 
+			});
+	private static PrintStream original = System.out; 
+
+	private static BtcFormat bf = Constants.bf;
+
 	public static void main(String[] args) throws Exception {
-		if(args.length == 0)
-			printHelp();
-		if(args[0].equals("help")) 
-			printHelp();	
+
+		Arguments jcargs = new Arguments();
+		JCommander jc = new JCommander(jcargs);
+		CommandStatus status = new CommandStatus();
+		CommandSend send = new CommandSend();
+		CommandEncrypt encrypt = new CommandEncrypt();
+		CommandDecrypt decrypt = new CommandDecrypt();
+		CommandExport export = new CommandExport();
+		CommandMaintenance maintenance = new CommandMaintenance();
+		CommandImport commandImport = new CommandImport();
+		CommandDelete delete = new CommandDelete();
+		CommandPanic panic = new CommandPanic();
+		CommandNew commandNew = new CommandNew();
+
+		jc.addCommand("status", status);
+		jc.addCommand("send", send);
+		jc.addCommand("encrypt", encrypt);
+		jc.addCommand("decrypt", decrypt);
+		jc.addCommand("export", export);
+		jc.addCommand("maintenance", maintenance);
+		jc.addCommand("import", commandImport);
+		jc.addCommand("delete", delete);
+		jc.addCommand("panic", panic);
+		jc.addCommand("new", commandNew);
+
+		jc.parse(args);
+
+		if(args.length == 0) {
+			printHelp(jc);
+			System.exit(0);
+		} if(jcargs.help) {
+			printHelp(jc);
+			System.exit(0);
+		}	
 
 		// Figure out which network we should connect to. Each one gets its own set of files.
 		try {
-			System.out.println("\r\nConnecting to and downloading blockchain...");
-			PrintStream nullStream = new PrintStream(new OutputStream() {
-				public void write(int b) {} 
-				});
-			PrintStream original = System.out;
-			System.setOut(nullStream); //RIP beautiful programming
-			System.setErr(nullStream);
-			String filePrefix;
-			if (Constants.params.equals(TestNet3Params.get())) {
-				System.out.println("connecting to TestNet");
-				filePrefix = "termwallet-testnet";
-			} else {
-				filePrefix = "termwallet";
+			System.out.println("Connecting to and downloading blockchain...");
+			if(!jcargs.verbose) {
+				System.setOut(nullStream); //RIP beautiful programming
+				System.setErr(nullStream);
 			}
 
-			// Start up a basic app using a class that automates some boilerplate.
-			kit = new WalletAppKit(Constants.params, new File(System.getProperty("user.home")), filePrefix);
-			//kit.useTor(); //For the future...
+			String filePrefix;
+
+			if (Constants.params.equals(TestNet3Params.get())) {
+				System.out.println("connecting to TestNet");
+				filePrefix = ".termwallet-testnet";
+			} else {
+				filePrefix = ".termwallet";
+			}
+			kit = new WalletAppKit(Constants.params, Constants.fileLocation, filePrefix);
+			if(Constants.useTor || jcargs.tor) {
+				System.out.println("Using Tor...");
+				kit.useTor(); //For the future...
+			}
 			// Download the blockchain and wait until it's done.
 			kit.startAndWait();
-
 			// Initiate the WalletEngine class
 			walletEngine = new WalletEngine();
 			// Forwards all events to the wallet engine to handle them.
 			kit.wallet().addEventListener(walletEngine);
 			// Start it all up, baby!
 			System.setOut(original); //Allow console output again
-			System.out.println("\r\nFinished downloading blockchain, starting process...\r\n");
+			System.out.println("Finished downloading blockchain...\r\n");
 			//TODO: Handle this using something better than if cases	
-			if(args[0].equals("status")) {
-				System.out.println("Your addresses and their balances:");
-				List<ECKey> walletPubkeys = kit.wallet().getKeys();
-				Iterator<ECKey> iterator = walletPubkeys.iterator();
-				while(iterator.hasNext()) {
-					Address tempAddr = iterator.next().toAddress(Constants.params);
-					BigInteger addrBalance = kit.wallet().getBalance(new IndividualCoinSelector(tempAddr));
-					String format = "%-40s%s%n";
-					System.out.printf(format, tempAddr, "Balance: " + addrBalance);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		// Call status command
+		if(jc.getParsedCommand() == "status") {
+			printStatus();
+		}
+
+
+		if(jc.getParsedCommand() == "new") {
+			System.out.println("New Address " + getEngine().newAddress(commandNew.purpose) + "with purpose " + commandNew.purpose);
+		}
+
+		if(jc.getParsedCommand() == "send" || jc.getParsedCommand() == "panic") {
+			System.setOut(original);
+			boolean shouldEncryptOnceSent = false;
+			String password = "";
+			if(getKit().wallet().isEncrypted()) {
+				password = promptDecrypt();
+				if(password == "") {
+					System.out.println("Wrong password! Exiting...");
+					return;
 				}
-				System.out.println("\r\nConfirmed: " + Utils.bitcoinValueToFriendlyString(kit.wallet().getBalance()) + "BTC");
-				System.out.println("Unconfirmed: " + Utils.bitcoinValueToFriendlyString(kit.wallet().getBalance(Wallet.BalanceType.ESTIMATED).subtract(kit.wallet().getBalance())) + "BTC");
+				shouldEncryptOnceSent = true;
+			}
+			if(jc.getParsedCommand() == "send") {
+				getEngine().createSendRequest(send.toAddress, send.sendAmount, send.fromAddress, send.changeAddress);
+			} else if(jc.getParsedCommand() == "panic") {
+				getEngine().emptyWalletRequest(panic.toAddress, panic.selfDestruct);
+			}
+			if(shouldEncryptOnceSent) {
+				getKit().wallet().encrypt(password);
 			}
 
-			if(args[0].equals("newaddress")) {
-				System.out.println(getEngine().newAddress());
-			}
+		}
 
-			if(args[0].equals("send")) {
-				System.setOut(original);
-				System.out.println(args[2]);
-				if(args.length == 3) {
-					getEngine().createSendRequest(args[1], new BigInteger(args[2]), null);
-				}
-				if(args.length == 4) {
-					getEngine().createSendRequest(args[1], new BigInteger(args[3]), new Address(Constants.params, args[2]));
-				}
+		if(jc.getParsedCommand() == "encrypt") {
+			if(!getKit().wallet().isEncrypted()) {
+				promptEncrypt();
+			} else {
+				System.out.println("Wallet is already encrypted.");
 			}
+			System.out.println("Exiting...");
+		}
 
-			if(args[0].equals("encrypt")) {
-				System.out.print("Password: ");
-				String password = System.console().readLine();
-				System.out.print("Again: ");
-				String passwordCheck = System.console().readLine();
-				if(password.equals(passwordCheck)) {
-					getKit().wallet().encrypt(password);
-					System.out.println("Success! Private keys have been encrypted.");
-				}
+		if(jc.getParsedCommand() == "decrypt") {
+			if(getKit().wallet().isEncrypted()) {
+				promptDecrypt();
+			} else {
+				System.out.println("Wallet is not encrypted.");
 			}
+			System.out.println("Exiting...");
+		}
 
-			if(args[0].equals("decrypt")) {
-				System.out.print("Password: ");
-				String password = System.console().readLine();
-				if(getKit().wallet().checkPassword(password)) {
-					getKit().wallet().decrypt(getKit().wallet().getKeyCrypter().deriveKey(password));
-					System.out.println("Success! Decrypted wallet!");
+		if(jc.getParsedCommand() == "export") {
+			System.out.println("Exporting wallet:");
+			if(getKit().wallet().isEncrypted()) {
+				System.out.print("Wallet is encrypted, decrypt now? If not, no private keys will be shown (yes/no):");
+				String result = System.console().readLine();
+				if(result.equals("yes") || result.equals("y")) {
+					promptDecrypt();
+					System.out.println(getKit().wallet().toString(true, false, false, null));
 				} else {
-					System.out.println("Error! Wrong password!");
+				System.out.println(getKit().wallet().toString());
 				}
-			}
-
-			if(args[0].equals("export")) {
-				System.out.println("Exporting wallet:");
+			} else {
 				System.out.println(getKit().wallet().toString(true, false, false, null));
 			}
-
-			if(args[0].equals("add")) {
-				System.out.println("Creating ECKey from privkey " + args[1] + "...");
-				ECKey toAdd = new ECKey(args[1].getBytes(), null);
-				toAdd.setCreationTimeSeconds(140606150L);
-				getKit().wallet().addKey(toAdd);
-				System.out.println("Added new ECKey, address " + toAdd.toAddress(Constants.params) + " to wallet...");
-			}
-
-			System.out.println("\r\n");
-			//TODO: figure out a better way to do this?
-			if(!args[0].equals("listen")) {
-				System.exit(0);
-			} else {
-				System.out.println("OK, listening for new transactions...");
-				System.setOut(original);
-			}
 		}
-		catch (Exception e) {
-			e.printStackTrace();
+
+		if(jc.getParsedCommand() == "maintenance") {
+			getKit().wallet().doMaintenance(null, true);
+		}
+
+		if(jc.getParsedCommand() == "delete") {
+			ECKey toDelete = getKit().wallet().findKeyFromPubHash(delete.addressToDelete.getHash160());
+			getEngine().deleteKey(toDelete);
+		}
+
+		if(jc.getParsedCommand() == "import") {
+			ECKey eckey = promptPrivKey();
+			System.out.println("Creating ECKey " + eckey + "...");
+			eckey.setCreationTimeSeconds(140606150L); //Ensure retroactive checking of balance
+			getKit().wallet().importKey(eckey);
+			System.out.println("Added new ECKey, address " + eckey.toAddress(Constants.params) + " to wallet...");
+		}
+
+		//TODO: figure out a better way to do this?
+		if(!jcargs.listen) {
+			System.exit(0);
+		} else {
+			System.out.println("OK, listening for new transactions...");
+			System.setOut(original);
 		}
 	}
 
@@ -153,17 +219,72 @@ public class App {
 	public static WalletEngine getEngine() {
 		return walletEngine;
 	}
-	static void printHelp() {
-		System.out.println("\r\nCommands:\r\n\r\nhelp, Prints this\r\n");
-		System.out.println("status, Prints overview of your wallet. Includes your addresses and their balances\r\n");
-		System.out.println("newaddress, Add a new, random address to your wallet\r\n");
-		System.out.println("add [privkey], Adds designated private key to your wallet\r\n");
-		System.out.println("send [to] [satoshis], send a new transaction. Chooses from all outputs in your wallet\r\n");
-		System.out.println("send [to] [from] [satoshis], send a new transaction. Designating the 'from' address limits output selection to only that address\r\n");
-		System.out.println("listen, Listen passively for new transactions\r\n");
-		System.out.println("encrypt, You will be prompted for a password (make sure it is long and secure) to encrypt the private keys in your wallet with\r\n");
-		System.out.println("decrypt, You will be prompted for your encryption password.  You must decrypt before sending a transaction (and ideally encrypt after you send the transaction)\r\n");
-		System.out.println("export, Export all keys associated with your wallet.  You must decrypt your wallet first if you want your private keys");
+	static void printHelp(JCommander jc) {
+		jc.usage();
 		System.exit(0);
+	}
+
+	static void promptEncrypt() {
+		System.out.print("Password: ");
+		String password = System.console().readLine();
+		System.out.print("Again: ");
+		String passwordCheck = System.console().readLine();
+		if(password.equals(passwordCheck)) {
+			getKit().wallet().encrypt(password);
+			System.out.println("Success! Private keys have been encrypted.");
+		} else {
+			System.out.println("Passwords didn't match!");
+		}
+		return;
+	}
+
+	static String promptDecrypt() {
+		System.out.print("Password: ");
+		String password = System.console().readLine();
+		if(getKit().wallet().checkPassword(password)) {
+			getKit().wallet().decrypt(getKit().wallet().getKeyCrypter().deriveKey(password));
+			System.out.println("Success! Decrypted wallet!");
+			return password;
+		} else {
+			System.out.println("Error! Wrong password!");
+			return "";
+		}
+	}
+
+	static ECKey promptPrivKey() {
+		System.out.print("Private key: ");
+		ECKey eckey = new ECKey(System.console().readLine().getBytes(), null);
+		return eckey;
+	}
+
+	static void printStatus() {
+		System.out.println("Your addresses and their balances:");
+			List<Address> determKeys = kit.wallet().getWatchedAddresses();
+			Iterator<Address> determIterator = determKeys.iterator();
+
+			List<ECKey> importedKeys = kit.wallet().getImportedKeys();
+			Iterator<ECKey> importedIterator = importedKeys.iterator();
+			
+			if(importedKeys.size() > 0) {
+				System.out.println("\r\nImported Keys:");
+				while(importedIterator.hasNext()) {
+					Address tempAddr = importedIterator.next().toAddress(Constants.params);
+					Coin addrBalance = kit.wallet().getBalance(new IndividualCoinSelector(tempAddr));
+					String format ="%-40s%s%n";
+					System.out.printf(format,tempAddr, "Balance: " + bf.format(addrBalance));
+				}
+			System.out.println();
+			}
+			if(determKeys.size() > 0) {
+				System.out.println("Deterministic Keys:");
+				while(determIterator.hasNext()) {
+					Address tempAddr = determIterator.next();
+					Coin addrBalance = kit.wallet().getBalance(new IndividualCoinSelector(tempAddr));
+					String format = "%-40s%s%n";
+					System.out.printf(format, tempAddr, "Balance: " + bf.format(addrBalance));
+				}
+				System.out.println("\r\nConfirmed: " + bf.format(kit.wallet().getBalance()));
+				System.out.println("Unconfirmed: " + bf.format(kit.wallet().getBalance(Wallet.BalanceType.ESTIMATED).subtract(kit.wallet().getBalance())));
+			}
 	}
 }

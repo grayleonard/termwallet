@@ -1,21 +1,22 @@
 package com.bitcoin.termwallet;
 
-import com.google.bitcoin.core.Address;
-import com.google.bitcoin.core.Wallet;
-import com.google.bitcoin.wallet.CoinSelector;
-import com.google.bitcoin.wallet.CoinSelection;
-import com.google.bitcoin.core.NetworkParameters;
-import com.google.bitcoin.core.Transaction;
-import com.google.bitcoin.core.TransactionConfidence;
-import com.google.bitcoin.core.TransactionOutput;
-import com.google.bitcoin.params.MainNetParams;
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Wallet;
+import org.bitcoinj.wallet.CoinSelector;
+import org.bitcoinj.wallet.CoinSelection;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionConfidence;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.params.MainNetParams;
 import com.google.common.annotations.VisibleForTesting;
 
 import java.math.BigInteger;
 import java.util.*;
 
 /**
- * This class implements a {@link com.google.bitcoin.wallet.CoinSelector} which attempts to select all outputs
+ * This class implements a {@link org.bitcoinj.wallet.CoinSelector} which attempts to select all outputs
  * from a list of address. Outputs are selected in order of highest priority.  Note that this means we may 
  * end up "spending" more priority than would be required to get the transaction we are creating confirmed.
  */
@@ -27,7 +28,7 @@ public class MultipleCoinSelector implements CoinSelector {
 			this.addressesToQuery = addressesToQuery;
 	}
 
-    public CoinSelection select(BigInteger biTarget, LinkedList<TransactionOutput> candidates) {
+    public CoinSelection select(Coin biTarget, List<TransactionOutput> candidates) {
         long target = biTarget.longValue();
         HashSet<TransactionOutput> selected = new HashSet<TransactionOutput>();
         // Sort the inputs by age*value so we get the highest "coindays" spent.
@@ -50,7 +51,7 @@ public class MultipleCoinSelector implements CoinSelector {
         }
         // Total may be lower than target here, if the given candidates were insufficient to create to requested
         // transaction.
-        return new CoinSelection(BigInteger.valueOf(total), selected);
+        return new CoinSelection(Coin.valueOf(total), selected);
     }
 
     static void sortOutputs(ArrayList<TransactionOutput> outputs) {
@@ -64,10 +65,10 @@ public class MultipleCoinSelector implements CoinSelector {
                     depth1 = conf1.getDepthInBlocks();
                 if (conf2.getConfidenceType() == TransactionConfidence.ConfidenceType.BUILDING)
                     depth2 = conf2.getDepthInBlocks();
-                BigInteger aValue = a.getValue();
-                BigInteger bValue = b.getValue();
-                BigInteger aCoinDepth = aValue.multiply(BigInteger.valueOf(depth1));
-                BigInteger bCoinDepth = bValue.multiply(BigInteger.valueOf(depth2));
+                Coin aValue = a.getValue();
+                Coin bValue = b.getValue();
+		BigInteger aCoinDepth = BigInteger.valueOf(aValue.value).multiply(BigInteger.valueOf(depth1));
+		BigInteger bCoinDepth = BigInteger.valueOf(bValue.value).multiply(BigInteger.valueOf(depth2));
                 int c1 = bCoinDepth.compareTo(aCoinDepth);
                 if (c1 != 0) return c1;
                 // The "coin*days" destroyed are equal, sort by value alone to get the lowest transaction size.
