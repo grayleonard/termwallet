@@ -1,14 +1,15 @@
 TermWallet
 ==========
 
-TermWallet is a bitcoinj-based wallet that is used solely on the command line.  It does not download the whole blockchain, and as a result only take up about a megabyte of space (not accounting for its own size, roughly 18mb).  Small servers with limited HDD space are thus the ideal use-case for TermWallet.  You can run it with only terminal access.
+TermWallet is a bitcoinj-based wallet tailormade for the command line.  It does not download the whole blockchain, and as a result only take up about a megabyte of space (not accounting for its own size, roughly 18mb).  Small servers with limited HDD space are thus the ideal use-case for TermWallet.  You can run it with only terminal access.
 
 TermWallet includes a novel adaption of bitcoinj's CoinSelector method, IndividualCoinSelector.  Previously, bitcoinj (and subsequently bitcoinj-based wallets such as Multibit) have not been able to create transactions from a single address's outputs.  IndividualCoinSelector provides this capability. Use the ```-f (--from)``` option while using the ```send``` command to designate the address to send from.
 
-
-Further, TermWallet provides a 'panic' command that can send all the BTC's in the wallet to an external address and, optionally (using ```-sd``` (self-destruct)), delete the wallet (including all files). This should be used if the computer is compromised or at risk.  No private keys will be easily recoverable.
+An encryption function is included, currently only encrypting private keys. Further, TermWallet provides a 'panic' command that can send all the BTC's in the wallet to an external address and, optionally, delete the wallet (including all files). This should be used if the computer is compromised or at risk.  No private keys will be easily recoverable.
 
 An experimental Tor function can be used to connect to the blockchain.  Use ```-t``` or ```--tor``` to use it.
+
+To view the usage menu, use ```termwallet -h```
 
 Instructions
 ============
@@ -22,14 +23,12 @@ Quick Install:
 wget -O - https://raw.githubusercontent.com/grayleonard/termwallet/master/install.sh | sh
 ```
 
-or, if you want to build from source:
+Or, if you want to build from source:
 ```
 git clone https://github.com/grayleonard/termwallet.git
 cd termWallet
 ./build.sh
 ```
-
-To view the usage menu, ```termwallet -h```
 
 Usage
 ========
