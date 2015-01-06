@@ -13,7 +13,8 @@ An experimental Tor function can be used to connect to the blockchain.  Use ```-
 Instructions
 ============
 
-You Need:
+Requirements:
+OSX or Linux
 Java 1.6 (bitcoinj requirement)
 
 Quick Install: 
