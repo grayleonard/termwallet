@@ -84,6 +84,9 @@ public class App {
 			System.exit(0);
 		}	
 
+		if(jcargs.testnet)
+			Constants.params = TestNet3Params.get();
+
 		// Figure out which network we should connect to. Each one gets its own set of files.
 		try {
 			System.out.println("Connecting to and downloading blockchain...");
@@ -93,7 +96,7 @@ public class App {
 			}
 
 			String filePrefix;
-
+			
 			if (Constants.params.equals(TestNet3Params.get())) {
 				System.out.println("connecting to TestNet");
 				filePrefix = ".termwallet-testnet";

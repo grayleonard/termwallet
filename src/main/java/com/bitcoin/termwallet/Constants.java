@@ -8,7 +8,7 @@ import java.io.File;
 
 public class Constants {
 
-	public static NetworkParameters params = TestNet3Params.get(); // To go live, change to "MainNetParams.get()"
+	public static NetworkParameters params = MainNetParams.get(); // To go live, change to "MainNetParams.get()"
 	public static File fileLocation = new File(System.getProperty("user.home") + "/.termwallet/"); 
 	public static int CONFIRMATIONS_TO_WAIT = 1; // 1 right now to make it faster, but to be safe it should be 6 when live
 	public static BtcFormat bf = BtcFormat.getInstance();

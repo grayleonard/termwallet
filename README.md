@@ -1,18 +1,16 @@
 TermWallet
 ==========
 
-**Still in development, and although it works it is in rough shape, so don't trust with your bitcoins!**
+An easy-to-use, bitcoinj-based wallet accessible through the command line.  It doesn't need to download the whole blockchain, and the blockchain headers only take up about a megabyte of space.  Small servers with limited hard-drive space are thus the ideal use-case for TermWallet.  You can run it with only terminal access.
 
-An easy-to-use, bitcoinj-based wallet accessible through the command line.  Because it uses bitcoinj it doesn't need to download the blockchain.  Small servers with limited hard-drive space are thus the ideal use-case for TermWallet.  You can run it with only terminal access.
+TermWallet includes a novel adaption of bitcoinj's CoinSelector method, IndividualCoinSelector.  Previously, bitcoinj (and subsequently bitcoinj-based wallets such as Multibit) have not been able to create transactions from a single address's outputs.  IndividualCoinSelector provides this capability. 
 
-TermWallet includes a novel adaption of bitcoinj's CoinSelector method, IndividualCoinSelector.  Previously, bitcoinj (and subsequently bitcoinj-based wallets such as Multibit) have not been able to create transactions from a single address's outputs.  IndividualCoinSelector provides this capability. Test it out with the `send [to] [from] [amount]` command, where `[from]` is an address in your wallet.
-
+Further, TermWallet provides a 'panic' command that can send all the BTC's in the wallet to an external address and then delete the wallet (including all files). This should be used if the computer is compromised or at risk.
 
 Instructions
 ============
 
 You Need:
-Maven
 Java 1.6 (bitcoinj requirement)
 
 To change from testnet to mainnet, open Constants.java and change `params` to `MainNetParams.get()`.
@@ -24,25 +22,73 @@ To install, move 'termwallet' and the 'target' folder to /usr/local/bin (or your
 To run, execute 'termwallet <command>' in the terminal.
 
 
-Commands
+Usage
 ========
+```
+Usage: <main class> [options] [command] [command options]
+  Options:
+    -h, --help
+       
+       Default: false
+    -l, --listen
+       Passively listen for transactions
+       Default: false
+    -t, --tor
+       Use Tor to connect to bitcoin network
+       Default: false
+    -v, --verbose
+       Verbose output
+       Default: false
+  Commands:
+    status      Prints wallet addresses and balances
+      Usage: status [options]
 
-help, Prints this
+    send        Add file contents to the index
+      Usage: send [options]
+        Options:
+        * -a, --amount
+             Amount to Send (in BTC)
+          -c, --change
+             Change address
+          -f, --from
+             Address to send from
+        * -t, --to
+             Address to send to
 
-status, Prints overview of your wallet.  Includes your addresses and their balances.
+    encrypt      Encrypt private keys and seed in wallet
+      Usage: encrypt [options]
 
-newaddress, Add a new, random address to your wallet
+    decrypt      Decrypt private keys and seed in wallet
+      Usage: decrypt [options]
 
-add [privkey], Adds designated private key to your wallet
+    export      Export your wallet
+      Usage: export [options]
 
-send [to] [satoshis], send a new transaction. Chooses from all outputs in your wallet
+    maintenance      Export your wallet
+      Usage: maintenance [options]
 
-send [to] [from] [satoshis], send a new transaction. Designating the 'from' address limits output selection to only that address
+    import      Add a private key to your wallet
+      Usage: import [options]
 
-listen, Listen passively for new transactions
+    delete      Remove a key from your watched addresses - destroy imported private keys
+      Usage: delete [options]
+        Options:
+        * -a, --address
+             Address to delete
 
-encrypt, You will be prompted for a password (make sure it is long and secure) to encrypt the private keys in your wallet with
+    panic      Send all BTCs in wallet to address, optionally delete wallet
+      Usage: panic [options]
+        Options:
+          -sd, --self-destruct
+             Self-Destruct; Erase all private keys and wallet file
+             Default: false
+          -t, --to
+             Address to send to
 
-decrypt, You will be prompted for your encryption password.  You must decrypt before sending a transaction (and ideally encrypt after you send the transaction)
-
-export, Export all keys associated with your wallet.  You must decrypt your wallet first if you want your private keys
+    new      Create a new address with purpose 'change' or 'receive', defaults to 'receive'
+      Usage: new [options]
+        Options:
+          -p, --purpose
+             Address purpose
+             Default: RECEIVE_FUNDS
+```
