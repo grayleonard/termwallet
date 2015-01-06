@@ -85,7 +85,7 @@ public class App {
 		}	
 
 		if(jcargs.testnet)
-			Constants.params = TestNet3Params.get();
+			Constants.params = TestNet3Params.get(); //Yikes. Do better later
 
 		// Figure out which network we should connect to. Each one gets its own set of files.
 		try {
@@ -182,7 +182,7 @@ public class App {
 					promptDecrypt();
 					System.out.println(getKit().wallet().toString(true, false, false, null));
 				} else {
-				System.out.println(getKit().wallet().toString());
+				System.out.println(getKit().wallet().toString(false, false, false, null));
 				}
 			} else {
 				System.out.println(getKit().wallet().toString(true, false, false, null));
