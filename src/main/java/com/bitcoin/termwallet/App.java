@@ -129,7 +129,7 @@ public class App {
 
 
 		if(jc.getParsedCommand() == "new") {
-			System.out.println("New Address " + getEngine().newAddress(commandNew.purpose) + "with purpose " + commandNew.purpose);
+			System.out.println("New Address " + getEngine().newAddress(commandNew.purpose) + " with purpose " + commandNew.purpose);
 		}
 
 		if(jc.getParsedCommand() == "send" || jc.getParsedCommand() == "panic") {
