@@ -204,18 +204,19 @@ public class App {
 			System.out.println("Creating ECKey " + eckey + "...");
 			eckey.setCreationTimeSeconds(140606150L); //Ensure retroactive checking of balance
 			if(getKit().wallet().isEncrypted()) {
-				String pass = promptDecrypt();
-				if(pass != null) {
+				System.out.print("Password: ");
+				String pass = System.console().readLine();	
+				if(getKit().wallet().checkPassword(pass)) {
 					List<ECKey> eckeys = Arrays.asList(eckey);
 					getKit().wallet().importKeysAndEncrypt(eckeys, pass);
 					System.out.println("Imported and encrypted key with address " + eckey.toAddress(Constants.params));
-					return;
 				} else {
 					System.out.println("Wrong password, try again.");
 				}
-			}
+			} else {
 			getKit().wallet().importKey(eckey);
 			System.out.println("Added new ECKey, address " + eckey.toAddress(Constants.params) + " to wallet...");
+			}
 		}
 
 		//TODO: figure out a better way to do this?
