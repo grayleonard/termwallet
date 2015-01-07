@@ -21,6 +21,7 @@ import org.slf4j.helpers.NOPLogger;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Arrays;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.OutputStream;
@@ -138,7 +139,7 @@ public class App {
 			String password = "";
 			if(getKit().wallet().isEncrypted()) {
 				password = promptDecrypt();
-				if(password == "") {
+				if(password == null) {
 					System.out.println("Wrong password! Exiting...");
 					return;
 				}
@@ -202,6 +203,17 @@ public class App {
 			ECKey eckey = promptPrivKey();
 			System.out.println("Creating ECKey " + eckey + "...");
 			eckey.setCreationTimeSeconds(140606150L); //Ensure retroactive checking of balance
+			if(getKit().wallet().isEncrypted()) {
+				String pass = promptDecrypt();
+				if(pass != null) {
+					List<ECKey> eckeys = Arrays.asList(eckey);
+					getKit().wallet().importKeysAndEncrypt(eckeys, pass);
+					System.out.println("Imported and encrypted key with address " + eckey.toAddress(Constants.params));
+					return;
+				} else {
+					System.out.println("Wrong password, try again.");
+				}
+			}
 			getKit().wallet().importKey(eckey);
 			System.out.println("Added new ECKey, address " + eckey.toAddress(Constants.params) + " to wallet...");
 		}
@@ -250,7 +262,7 @@ public class App {
 			return password;
 		} else {
 			System.out.println("Error! Wrong password!");
-			return "";
+			return null;
 		}
 	}
 
