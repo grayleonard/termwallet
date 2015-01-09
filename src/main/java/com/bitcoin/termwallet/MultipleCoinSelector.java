@@ -85,8 +85,8 @@ public class MultipleCoinSelector implements CoinSelector {
     /** Sub-classes can override this to just customize whether transactions are usable, but keep age sorting. */
     protected boolean shouldSelect(TransactionOutput output) {
     	try {
-                for(int i = 0; i < addressesToQuery.size(); i++) { // Parse through each address to check
-			if(output.getScriptPubKey().getToAddress(Constants.params).equals(addressesToQuery.get(i))) {
+		for(Address addressToQuery : addressesToQuery) {
+			if(output.getScriptPubKey().getToAddress(Constants.params).equals(addressToQuery)) {
 				if(output.isAvailableForSpending()) {
 					return isSelectable(output.getParentTransaction());
 				}

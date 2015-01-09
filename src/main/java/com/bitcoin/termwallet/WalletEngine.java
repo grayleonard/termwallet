@@ -105,7 +105,6 @@ public class WalletEngine extends AbstractWalletEventListener {
 			if(destination == null) {
 				if(selfDestruct) {
 					deleteWallet();
-					return;
 				}
 				return;
 			}

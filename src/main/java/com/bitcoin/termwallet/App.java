@@ -89,21 +89,23 @@ public class App {
 			Constants.params = TestNet3Params.get(); //Yikes. Do better later
 
 		// Figure out which network we should connect to. Each one gets its own set of files.
-		try {
-			System.out.println("Connecting to and downloading blockchain...");
-			if(!jcargs.verbose) {
-				System.setOut(nullStream); //RIP beautiful programming
-				System.setErr(nullStream);
-			}
 
-			String filePrefix;
-			
-			if (Constants.params.equals(TestNet3Params.get())) {
-				System.out.println("connecting to TestNet");
-				filePrefix = ".termwallet-testnet";
-			} else {
-				filePrefix = ".termwallet";
-			}
+		System.out.println("Connecting to and downloading blockchain...");
+		if(!jcargs.verbose) {
+			System.setOut(nullStream); //RIP beautiful programming
+			System.setErr(nullStream);
+		}
+
+		String filePrefix;
+		
+		if (Constants.params.equals(TestNet3Params.get())) {
+			System.out.println("connecting to TestNet");
+			filePrefix = ".termwallet-testnet";
+		} else {
+			filePrefix = ".termwallet";
+		}
+		try {
+			// Start up wallet
 			kit = new WalletAppKit(Constants.params, Constants.fileLocation, filePrefix);
 			if(Constants.useTor || jcargs.tor) {
 				System.out.println("Using Tor...");
