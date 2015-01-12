@@ -17,6 +17,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import org.spongycastle.crypto.params.KeyParameter;
+
 import org.slf4j.helpers.NOPLogger;
 
 import java.util.Iterator;
@@ -137,23 +139,21 @@ public class App {
 
 		if(jc.getParsedCommand() == "send" || jc.getParsedCommand() == "panic") {
 			System.setOut(original);
-			boolean shouldEncryptOnceSent = false;
-			String password = "";
+
+			//Handle password input / decryption
+			KeyParameter aeskey = null;
+			String password = null;
 			if(getKit().wallet().isEncrypted()) {
-				password = promptDecrypt();
-				if(password == null) {
-					System.out.println("Wrong password! Exiting...");
-					return;
+				password = promptPassword();
+				while(password == null) {
+					password = promptPassword();
 				}
-				shouldEncryptOnceSent = true;
+				aeskey = getKit().wallet().getKeyCrypter().deriveKey(password);
 			}
 			if(jc.getParsedCommand() == "send") {
-				getEngine().createSendRequest(send.toAddress, send.sendAmount, send.fromAddress, send.changeAddress);
+				getEngine().createSendRequest(send.toAddress, send.sendAmount, send.fromAddress, send.changeAddress, aeskey);
 			} else if(jc.getParsedCommand() == "panic") {
-				getEngine().emptyWalletRequest(panic.toAddress, panic.selfDestruct);
-			}
-			if(shouldEncryptOnceSent) {
-				getKit().wallet().encrypt(password);
+				getEngine().emptyWalletRequest(panic.toAddress, panic.selfDestruct, aeskey);
 			}
 
 		}
@@ -169,7 +169,11 @@ public class App {
 
 		if(jc.getParsedCommand() == "decrypt") {
 			if(getKit().wallet().isEncrypted()) {
-				promptDecrypt();
+				String password = null;
+				while(password == null)
+					password = promptPassword();
+				getKit().wallet().decrypt(getKit().wallet().getKeyCrypter().deriveKey(password));
+				System.out.println("Success! Decrypted wallet!");
 			} else {
 				System.out.println("Wallet is not encrypted.");
 			}
@@ -182,8 +186,12 @@ public class App {
 				System.out.print("Wallet is encrypted, decrypt now? If not, no private keys will be shown (yes/no):");
 				String result = System.console().readLine();
 				if(result.equals("yes") || result.equals("y")) {
-					promptDecrypt();
+					String password = null;
+					while(password == null)
+						password = promptPassword();
+					getKit().wallet().decrypt(getKit().wallet().getKeyCrypter().deriveKey(password));
 					System.out.println(getKit().wallet().toString(true, false, false, null));
+					getKit().wallet().encrypt(password);
 				} else {
 				System.out.println(getKit().wallet().toString(false, false, false, null));
 				}
@@ -206,8 +214,7 @@ public class App {
 			System.out.println("Creating ECKey " + eckey + "...");
 			eckey.setCreationTimeSeconds(140606150L); //Ensure retroactive checking of balance
 			if(getKit().wallet().isEncrypted()) {
-				System.out.print("Password: ");
-				String pass = System.console().readLine();	
+				String pass = promptPassword();	
 				if(getKit().wallet().checkPassword(pass)) {
 					List<ECKey> eckeys = Arrays.asList(eckey);
 					getKit().wallet().importKeysAndEncrypt(eckeys, pass);
@@ -256,15 +263,13 @@ public class App {
 		return;
 	}
 
-	static String promptDecrypt() {
+	static String promptPassword() {
 		System.out.print("Password: ");
 		String password = System.console().readLine();
 		if(getKit().wallet().checkPassword(password)) {
-			getKit().wallet().decrypt(getKit().wallet().getKeyCrypter().deriveKey(password));
-			System.out.println("Success! Decrypted wallet!");
 			return password;
 		} else {
-			System.out.println("Error! Wrong password!");
+			System.out.println("Wrong Password! Try Again...");
 			return null;
 		}
 	}

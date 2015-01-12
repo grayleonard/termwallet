@@ -7,16 +7,23 @@ import org.bitcoinj.wallet.*;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.utils.*;
+
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.File;
+import java.io.RandomAccessFile;
+import java.security.SecureRandom;
 import java.util.concurrent.*;
 import static java.util.concurrent.TimeUnit.*;
+
+import org.spongycastle.crypto.params.KeyParameter;
 
 public class WalletEngine extends AbstractWalletEventListener {
 
@@ -57,7 +64,7 @@ public class WalletEngine extends AbstractWalletEventListener {
 		return freshAddress;
 	}
 
-	public void createSendRequest(Address destination, Coin amount, Address from, Address change) {
+	public void createSendRequest(Address destination, Coin amount, Address from, Address change, KeyParameter aeskey) {
 		try {
 			System.out.println("Sending " + bf.format(amount) + " with TX FEE: " + bf.format(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE));
 			final Coin amountToSend = amount;
@@ -76,14 +83,20 @@ public class WalletEngine extends AbstractWalletEventListener {
 			}
 			// Creates the send request and designates the change address (where change will be sent).
 			Wallet.SendRequest sendRequest = Wallet.SendRequest.to(destination, amountToSend.add(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE));
+
+			// Assign change address
 			if(change == null) {
-				Address newChangeAddress = newAddress(KeyPurpose.CHANGE);
-				App.getKit().wallet().addWatchedAddress(newChangeAddress);
-				sendRequest.changeAddress = newChangeAddress; //Temporary
+				sendRequest.changeAddress = from; //Temporary, set to from address
 			}
 			else {
 				sendRequest.changeAddress = change;
 			}
+
+			// aesKey to decrypt private keys in transaction
+			if(aeskey != null) {
+				sendRequest.aesKey = aeskey;
+			}
+
 			final Wallet.SendResult sendResult = App.getKit().wallet().sendCoins(App.getKit().peerGroup(), sendRequest);
 			checkNotNull(sendResult);  // We should never try to send more coins than we have!
 			System.out.println("Sending...");
@@ -100,7 +113,7 @@ public class WalletEngine extends AbstractWalletEventListener {
 		}
 	}
 
-	public void emptyWalletRequest(Address destination, final boolean selfDestruct) {
+	public void emptyWalletRequest(Address destination, final boolean selfDestruct, KeyParameter aeskey) {
 		try {
 			if(destination == null) {
 				if(selfDestruct) {
@@ -110,6 +123,11 @@ public class WalletEngine extends AbstractWalletEventListener {
 			}
 			System.out.println("Panicking! Sending BTC to " + destination.toString());
 			Wallet.SendRequest sendRequest = Wallet.SendRequest.emptyWallet(destination);
+
+			if(aeskey != null) {
+				sendRequest.aesKey = aeskey;
+			}
+
 			final Wallet.SendResult sendResult = App.getKit().wallet().sendCoins(App.getKit().peerGroup(), sendRequest);
 			sendResult.broadcastComplete.addListener(new Runnable() {
 				@Override
@@ -140,14 +158,38 @@ public class WalletEngine extends AbstractWalletEventListener {
 		return false;
 	}
 
-	public boolean deleteWallet() {
-		for(File file: Constants.fileLocation.listFiles())
-			file.deleteOnExit();
-		if(Constants.fileLocation.listFiles().length == 0)
-			return true;
-		else
-			return false;
+	public void deleteWallet() {
+		for(File file: Constants.fileLocation.listFiles()) {
+			System.out.println("Deleting file " + file.getName());
+			secureDelete(file);
+		}
+		System.out.println("All files deleted. Exiting...");
+		System.exit(0);
 	}
+
+	//Secure delete function, called by deleteWallet()
+	public static void secureDelete(File file) {
+	try {
+		if (file.exists()) {
+			long length = file.length();
+			SecureRandom random = new SecureRandom();
+			RandomAccessFile raf = new RandomAccessFile(file, "rws");
+			raf.seek(0);
+			raf.getFilePointer();
+			byte[] data = new byte[64];
+			int pos = 0;
+			while (pos < length) {
+				random.nextBytes(data);
+				raf.write(data);
+				pos += data.length;
+			}
+			raf.close();
+			file.deleteOnExit();
+		}
+	} catch(Exception e) {
+		e.printStackTrace();
+	}
+}
 
 	// Get Balance of an array of bitcoin addresses that you control
 	public Coin getCurrentBalance(ArrayList<Address> addresses) { 

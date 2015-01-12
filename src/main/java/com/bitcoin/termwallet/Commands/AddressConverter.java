@@ -7,7 +7,7 @@ public class AddressConverter implements IStringConverter<Address> {
 	@Override
 	public Address convert(String value) {
 		try {
-			return new Address(Constants.params, value);
+			return new Address(Address.getParametersFromAddress(value), value);
 		} catch(Exception e) {
 			System.out.println("Error parsing address " + value);
 			e.printStackTrace();
