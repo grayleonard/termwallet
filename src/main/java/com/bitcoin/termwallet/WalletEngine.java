@@ -1,29 +1,32 @@
 package com.bitcoin.termwallet;
 
-import org.bitcoinj.core.*;
-import org.bitcoinj.wallet.CoinSelector;
-import org.bitcoinj.wallet.KeyChain.KeyPurpose;
-import org.bitcoinj.wallet.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.io.File;
+import java.io.RandomAccessFile;
+import java.security.SecureRandom;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.AbstractWalletEventListener;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.Wallet;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.params.MainNetParams;
-import org.bitcoinj.utils.*;
+import org.bitcoinj.wallet.CoinSelector;
+import org.bitcoinj.wallet.KeyChain.KeyPurpose;
+import org.bitcoinj.utils.BtcFormat;
+
+import org.spongycastle.crypto.params.KeyParameter;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.io.File;
-import java.io.RandomAccessFile;
-import java.security.SecureRandom;
-import java.util.concurrent.*;
-import static java.util.concurrent.TimeUnit.*;
-
-import org.spongycastle.crypto.params.KeyParameter;
 
 public class WalletEngine extends AbstractWalletEventListener {
 
@@ -76,12 +79,11 @@ public class WalletEngine extends AbstractWalletEventListener {
 				amountAvailable = App.getKit().wallet().getBalance(new IndividualCoinSelector(from));
 				App.getKit().wallet().setCoinSelector(new IndividualCoinSelector(from));
 			}
-			// Check balance prior to sending request (sendResult will also throw error if balance < amount)
+
 			if(amountAvailable.compareTo(amountToSend.add(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE)) == -1) {
 				System.out.println("You don't have enough funds! You need " + amountToSend.add(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE).subtract(amountAvailable) + " satoshis more!");
 				return;
 			}
-			// Creates the send request and designates the change address (where change will be sent).
 			Wallet.SendRequest sendRequest = Wallet.SendRequest.to(destination, amountToSend.add(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE));
 
 			// Assign change address
@@ -169,27 +171,27 @@ public class WalletEngine extends AbstractWalletEventListener {
 
 	//Secure delete function, called by deleteWallet()
 	public static void secureDelete(File file) {
-	try {
-		if (file.exists()) {
-			long length = file.length();
-			SecureRandom random = new SecureRandom();
-			RandomAccessFile raf = new RandomAccessFile(file, "rws");
-			raf.seek(0);
-			raf.getFilePointer();
-			byte[] data = new byte[64];
-			int pos = 0;
-			while (pos < length) {
-				random.nextBytes(data);
-				raf.write(data);
-				pos += data.length;
+		try {
+			if (file.exists()) {
+				long length = file.length();
+				SecureRandom random = new SecureRandom();
+				RandomAccessFile raf = new RandomAccessFile(file, "rws");
+				raf.seek(0);
+				raf.getFilePointer();
+				byte[] data = new byte[64];
+				int pos = 0;
+				while (pos < length) {
+					random.nextBytes(data);
+					raf.write(data);
+					pos += data.length;
+				}
+				raf.close();
+				file.deleteOnExit();
 			}
-			raf.close();
-			file.deleteOnExit();
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
-	} catch(Exception e) {
-		e.printStackTrace();
 	}
-}
 
 	// Get Balance of an array of bitcoin addresses that you control
 	public Coin getCurrentBalance(ArrayList<Address> addresses) { 

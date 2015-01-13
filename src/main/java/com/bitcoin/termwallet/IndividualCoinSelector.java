@@ -1,19 +1,23 @@
 package com.bitcoin.termwallet;
 
+import java.math.BigInteger;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Wallet;
-import org.bitcoinj.wallet.CoinSelector;
-import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.Coin;
+import org.bitcoinj.wallet.CoinSelector;
+import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.params.MainNetParams;
-import com.google.common.annotations.VisibleForTesting;
-
-import java.math.BigInteger;
-import java.util.*;
 
 /**
  * This class implements a {@link org.bitcoinj.wallet.CoinSelector} which attempts to select all outputs

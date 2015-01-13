@@ -1,43 +1,42 @@
 package com.bitcoin.termwallet;
 
-import org.bitcoinj.core.*;
-import org.bitcoinj.wallet.CoinSelector;
-import org.bitcoinj.wallet.*;
-import org.bitcoinj.wallet.KeyChain.KeyPurpose;
-import org.bitcoinj.crypto.DeterministicKey;
-import org.bitcoinj.crypto.KeyCrypter;
-import org.bitcoinj.crypto.KeyCrypterException;
-import org.bitcoinj.kits.WalletAppKit;
-import org.bitcoinj.params.MainNetParams;
-import org.bitcoinj.params.RegTestParams;
-import org.bitcoinj.params.TestNet3Params;
-import org.bitcoinj.utils.BriefLogFormatter;
-import org.bitcoinj.utils.BtcFormat;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-
-import org.spongycastle.crypto.params.KeyParameter;
-
-import org.slf4j.helpers.NOPLogger;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Arrays;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
-import java.lang.StringBuilder;
-import java.util.logging.*;
-import java.text.MessageFormat;
+
+import org.bitcoinj.core.Address;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Wallet;
+import org.bitcoinj.core.Wallet.BalanceType;
+import org.bitcoinj.crypto.DeterministicKey;
+import org.bitcoinj.crypto.KeyCrypter;
+import org.bitcoinj.crypto.KeyCrypterException;
+import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.RegTestParams;
+import org.bitcoinj.params.TestNet3Params;
+import org.bitcoinj.wallet.CoinSelector;
+import org.bitcoinj.wallet.KeyChain.KeyPurpose;
+import org.bitcoinj.kits.WalletAppKit;
+import org.bitcoinj.utils.BriefLogFormatter;
+import org.bitcoinj.utils.BtcFormat;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.JCommander;
+import com.beust.jcommander.MissingCommandException;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.spongycastle.crypto.params.KeyParameter;
+
 public class App {
+
 	private static Address forwardingAddress;
 	private static WalletAppKit kit;
 	private static WalletEngine walletEngine;
@@ -47,6 +46,7 @@ public class App {
 	private static PrintStream nullStream = new PrintStream(new OutputStream() {
 				public void write(int b) {} 
 			});
+
 	private static PrintStream original = System.out; 
 
 	private static BtcFormat bf = Constants.bf;
@@ -77,7 +77,12 @@ public class App {
 		jc.addCommand("delete", delete);
 		jc.addCommand("panic", panic);
 
-		jc.parse(args);
+		try {
+			jc.parse(args);
+		} catch(MissingCommandException e) {
+			System.out.println("Unknown command, printing help");
+			printHelp(jc);
+		}
 
 		if(args.length == 0) {
 			printHelp(jc);
@@ -127,17 +132,18 @@ public class App {
 			e.printStackTrace();
 		}
 
+		String command = jc.getParsedCommand();
+
 		// Call status command
-		if(jc.getParsedCommand() == "status") {
+		if(command == "status") {
 			printStatus();
 		}
 
-
-		if(jc.getParsedCommand() == "new") {
+		if(command == "new") {
 			System.out.println("New Address " + getEngine().newAddress(commandNew.purpose) + " with purpose " + commandNew.purpose);
 		}
 
-		if(jc.getParsedCommand() == "send" || jc.getParsedCommand() == "panic") {
+		if(command == "send" || command == "panic") {
 			System.setOut(original);
 
 			//Handle password input / decryption
@@ -150,15 +156,15 @@ public class App {
 				}
 				aeskey = getKit().wallet().getKeyCrypter().deriveKey(password);
 			}
-			if(jc.getParsedCommand() == "send") {
+			if(command == "send") {
 				getEngine().createSendRequest(send.toAddress, send.sendAmount, send.fromAddress, send.changeAddress, aeskey);
-			} else if(jc.getParsedCommand() == "panic") {
+			} else if(command == "panic") {
 				getEngine().emptyWalletRequest(panic.toAddress, panic.selfDestruct, aeskey);
 			}
 
 		}
 
-		if(jc.getParsedCommand() == "encrypt") {
+		if(command == "encrypt") {
 			if(!getKit().wallet().isEncrypted()) {
 				promptEncrypt();
 			} else {
@@ -167,7 +173,7 @@ public class App {
 			System.out.println("Exiting...");
 		}
 
-		if(jc.getParsedCommand() == "decrypt") {
+		if(command == "decrypt") {
 			if(getKit().wallet().isEncrypted()) {
 				String password = null;
 				while(password == null)
@@ -180,7 +186,7 @@ public class App {
 			System.out.println("Exiting...");
 		}
 
-		if(jc.getParsedCommand() == "export") {
+		if(command == "export") {
 			System.out.println("Exporting wallet:");
 			if(getKit().wallet().isEncrypted()) {
 				System.out.print("Wallet is encrypted, decrypt now? If not, no private keys will be shown (yes/no):");
@@ -200,16 +206,16 @@ public class App {
 			}
 		}
 
-		if(jc.getParsedCommand() == "maintenance") {
+		if(command == "maintenance") {
 			getKit().wallet().doMaintenance(null, true);
 		}
 
-		if(jc.getParsedCommand() == "delete") {
+		if(command == "delete") {
 			ECKey toDelete = getKit().wallet().findKeyFromPubHash(delete.addressToDelete.getHash160());
 			getEngine().deleteKey(toDelete);
 		}
 
-		if(jc.getParsedCommand() == "import") {
+		if(command == "import") {
 			ECKey eckey = promptPrivKey();
 			System.out.println("Creating ECKey " + eckey + "...");
 			eckey.setCreationTimeSeconds(140606150L); //Ensure retroactive checking of balance
