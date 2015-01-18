@@ -23,40 +23,40 @@ public class Utils {
 		}
 	}
 
-		static ECKey promptPrivKey() {
-			System.out.print("Private key: ");
-			ECKey eckey = new ECKey(System.console().readLine().getBytes(), null);
-			return eckey;
-		}
+	static ECKey promptPrivKey() {
+		System.out.print("Private key: ");
+		ECKey eckey = new ECKey(System.console().readLine().getBytes(), null);
+		return eckey;
+	}
 
-		static void printStatus() {
-			System.out.println("Your addresses and their balances:");
-				List<Address> determKeys = App.getKit().wallet().getWatchedAddresses();
-				Iterator<Address> determIterator = determKeys.iterator();
+	static void printStatus() {
+		System.out.println("Your addresses and their balances:");
+		List<Address> determKeys = App.getKit().wallet().getWatchedAddresses();
+		Iterator<Address> determIterator = determKeys.iterator();
 
-				List<ECKey> importedKeys = App.getKit().wallet().getImportedKeys();
-				Iterator<ECKey> importedIterator = importedKeys.iterator();
-				
-				if(importedKeys.size() > 0) {
-					System.out.println("\r\nImported Keys:");
-					while(importedIterator.hasNext()) {
-						Address tempAddr = importedIterator.next().toAddress(Constants.params);
-						Coin addrBalance = App.getKit().wallet().getBalance(new IndividualCoinSelector(tempAddr));
-						String format ="%-40s%s%n";
-						System.out.printf(format,tempAddr, "Balance: " + bf.format(addrBalance));
-					}
-				System.out.println();
-				}
-				if(determKeys.size() > 0) {
-					System.out.println("Deterministic Keys:");
-					while(determIterator.hasNext()) {
-						Address tempAddr = determIterator.next();
-						Coin addrBalance = App.getKit().wallet().getBalance(new IndividualCoinSelector(tempAddr));
-						String format = "%-40s%s%n";
-						System.out.printf(format, tempAddr, "Balance: " + bf.format(addrBalance));
-					}
-					System.out.println("\r\nConfirmed: " + bf.format(App.getKit().wallet().getBalance()));
-					System.out.println("Unconfirmed: " + bf.format(App.getKit().wallet().getBalance(Wallet.BalanceType.ESTIMATED).subtract(App.getKit().wallet().getBalance())));
-				}
+		List<ECKey> importedKeys = App.getKit().wallet().getImportedKeys();
+		Iterator<ECKey> importedIterator = importedKeys.iterator();
+		
+		if(importedKeys.size() > 0) {
+			System.out.println("\r\nImported Keys:");
+			while(importedIterator.hasNext()) {
+				Address tempAddr = importedIterator.next().toAddress(Constants.params);
+				Coin addrBalance = App.getKit().wallet().getBalance(new IndividualCoinSelector(tempAddr));
+				String format ="%-40s%s%n";
+				System.out.printf(format,tempAddr, "Balance: " + bf.format(addrBalance));
+			}
+		System.out.println();
 		}
+		if(determKeys.size() > 0) {
+			System.out.println("Deterministic Keys:");
+			while(determIterator.hasNext()) {
+				Address tempAddr = determIterator.next();
+				Coin addrBalance = App.getKit().wallet().getBalance(new IndividualCoinSelector(tempAddr));
+				String format = "%-40s%s%n";
+				System.out.printf(format, tempAddr, "Balance: " + bf.format(addrBalance));
+			}
+			System.out.println("\r\nConfirmed: " + bf.format(App.getKit().wallet().getBalance()));
+			System.out.println("Unconfirmed: " + bf.format(App.getKit().wallet().getBalance(Wallet.BalanceType.ESTIMATED).subtract(App.getKit().wallet().getBalance())));
+		}
+	}
 }

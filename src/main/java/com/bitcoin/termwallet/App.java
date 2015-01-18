@@ -20,13 +20,10 @@ import com.beust.jcommander.MissingCommandException;
 
 public class App {
 
-	private static Address forwardingAddress;
 	private static WalletAppKit kit;
 	private static WalletEngine walletEngine;
 
 	private static JCommander jc;
-
-	private static BtcFormat bf = Constants.bf;
 
 	enum Commands {
 		STATUS,
