@@ -102,4 +102,11 @@ Usage: <main class> [options] [command] [command options]
              Default: false
           -t, --to
              Address to send to
+
+    restore      Create a wallet based on a BIP-39 mnemonic seed
+      Usage: restore [options]
+        Options:
+          -t, --time
+             Replay blockchain starting from this time (UNIX epoch time)
+             Default: 1421548754
 ```
