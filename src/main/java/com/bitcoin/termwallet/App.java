@@ -20,6 +20,7 @@ import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.wallet.CoinSelector;
 import org.bitcoinj.wallet.KeyChain.KeyPurpose;
+import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.kits.WalletAppKit;
 import org.bitcoinj.utils.BriefLogFormatter;
 import org.bitcoinj.utils.BtcFormat;
@@ -65,6 +66,7 @@ public class App {
 		CommandDelete delete = new CommandDelete();
 		CommandPanic panic = new CommandPanic();
 		CommandNew commandNew = new CommandNew();
+		CommandRestore restore = new CommandRestore();
 
 		jc.addCommand("status", status);
 		jc.addCommand("new", commandNew);
@@ -76,6 +78,7 @@ public class App {
 		jc.addCommand("maintenance", maintenance);
 		jc.addCommand("delete", delete);
 		jc.addCommand("panic", panic);
+		jc.addCommand("restore", restore);
 
 		try {
 			jc.parse(args);
@@ -97,7 +100,6 @@ public class App {
 
 		// Figure out which network we should connect to. Each one gets its own set of files.
 
-		System.out.println("Connecting to and downloading blockchain...");
 		if(!jcargs.verbose) {
 			System.setOut(nullStream); //RIP beautiful programming
 			System.setErr(nullStream);
@@ -111,6 +113,7 @@ public class App {
 		} else {
 			filePrefix = ".termwallet";
 		}
+
 		try {
 			// Start up wallet
 			kit = new WalletAppKit(Constants.params, Constants.fileLocation, filePrefix);
@@ -118,7 +121,23 @@ public class App {
 				System.out.println("Using Tor...");
 				kit.useTor(); //For the future...
 			}
+
+			if(jc.getParsedCommand() == "restore") {
+				System.setOut(original);
+				System.out.print("Seed: ");
+				String seedCode = System.console().readLine();
+				long seedTime = restore.time; 
+				DeterministicSeed seed = new DeterministicSeed(seedCode, null, "", seedTime);
+				System.out.println("Restoring seed \"" + seedCode + "\", from time " + seedTime);
+				if(!jcargs.verbose)
+					System.setOut(nullStream);
+				kit.restoreWalletFromSeed(seed);
+			}
+
 			// Download the blockchain and wait until it's done.
+			System.setOut(original);
+			System.out.println("Connecting to and downloading blockchain...");
+			System.setOut(nullStream);
 			kit.startAndWait();
 			// Initiate the WalletEngine class
 			walletEngine = new WalletEngine();
