@@ -7,6 +7,10 @@ import com.beust.jcommander.Parameters;
 public class CommandEncrypt {
 
 	public void call() {
+		if(App.getKit().wallet().isEncrypted()) {
+			System.out.println("Wallet already encrypted.");
+			return;
+		}
 		System.out.print("Password: ");
 		String password = System.console().readLine();
 		System.out.print("Again: ");

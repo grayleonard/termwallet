@@ -7,16 +7,14 @@ import com.beust.jcommander.Parameters;
 public class CommandDecrypt {
 
 	public void call() {
-		if(App.getKit().wallet().isEncrypted()) {
-					String password = null;
-					while(password == null)
-						password = Utils.promptPassword();
-					App.getKit().wallet().decrypt(App.getKit().wallet().getKeyCrypter().deriveKey(password));
-					System.out.println("Success! Decrypted wallet!");
-				} else {
-					System.out.println("Wallet is not encrypted.");
-				}
-				System.out.println("Exiting...");
+		if(!App.getKit().wallet().isEncrypted()) {
+			System.out.println("Wallet is not encrypted.");
+			return;
+		}
+		String password = null;
+		while(password == null)
+			password = Utils.promptPassword();
+		App.getKit().wallet().decrypt(App.getKit().wallet().getKeyCrypter().deriveKey(password));
+		System.out.println("Success! Decrypted wallet!");
 	}
-
 }
