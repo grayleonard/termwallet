@@ -7,37 +7,16 @@ import java.io.File;
 import java.io.PrintStream;
 import java.io.OutputStream;
 
-import java.lang.Class;
-import java.lang.reflect.Method;
-
 import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Wallet;
-import org.bitcoinj.core.Wallet.BalanceType;
-import org.bitcoinj.crypto.DeterministicKey;
-import org.bitcoinj.crypto.KeyCrypter;
-import org.bitcoinj.crypto.KeyCrypterException;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.params.TestNet3Params;
-import org.bitcoinj.wallet.CoinSelector;
-import org.bitcoinj.wallet.KeyChain.KeyPurpose;
-import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.kits.WalletAppKit;
-import org.bitcoinj.utils.BriefLogFormatter;
 import org.bitcoinj.utils.BtcFormat;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.MissingCommandException;
-
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import org.spongycastle.crypto.params.KeyParameter;
 
 public class App {
 
@@ -159,28 +138,17 @@ public class App {
 			case STATUS:
 				Utils.printStatus();
 			break;
+
 			case NEW:
 				System.out.println("New Address " + getEngine().newAddress(commandNew.purpose) + " with purpose " + commandNew.purpose);
 			break;
-			case SEND:
-			case PANIC:
-				System.setOut(Constants.original);
 
-				//Handle password input / decryption
-				KeyParameter aeskey = null;
-				String password = null;
-				if(getKit().wallet().isEncrypted()) {
-					password = Utils.promptPassword();
-					while(password == null) {
-						password = Utils.promptPassword();
-					}
-					aeskey = getKit().wallet().getKeyCrypter().deriveKey(password);
-				}
-				if(c == Commands.SEND) {
-					getEngine().createSendRequest(send.toAddress, send.sendAmount, send.fromAddress, send.changeAddress, aeskey);
-				} else if(c == Commands.PANIC) {
-					getEngine().emptyWalletRequest(panic.toAddress, panic.selfDestruct, aeskey);
-				}
+			case SEND:
+				send.call();
+			break;
+
+			case PANIC:
+				panic.call();	
 			break;
 
 			case ENCRYPT:
