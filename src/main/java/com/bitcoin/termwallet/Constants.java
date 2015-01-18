@@ -5,6 +5,8 @@ import org.bitcoinj.utils.BtcFormat;
 import org.bitcoinj.params.*;
 import java.math.BigInteger;
 import java.io.File;
+import java.io.PrintStream;
+import java.io.OutputStream;
 
 public class Constants {
 
@@ -13,5 +15,8 @@ public class Constants {
 	public static int CONFIRMATIONS_TO_WAIT = 1; // 1 right now to make it faster, but to be safe it should be 6 when live
 	public static BtcFormat bf = BtcFormat.getInstance();
 	public static boolean useTor = false;
-
+	public static PrintStream nullStream = new PrintStream(new OutputStream() {
+		public void write(int b) {} 
+	});
+	public static PrintStream original = System.out; 
 }
